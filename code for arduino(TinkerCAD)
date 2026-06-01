@@ -1,0 +1,97 @@
+// Smart Toilet Sanitation Monitoring System
+
+#define PIR_PIN 2
+#define TRIG_PIN 9
+#define ECHO_PIN 10
+#define MQ135_PIN A0
+#define LED_PIN 13
+
+long duration;
+float distance;
+int mqValue;
+int pirState;
+
+void setup()
+{
+  pinMode(PIR_PIN, INPUT);
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(LED_PIN, OUTPUT);
+
+  Serial.begin(9600);
+}
+
+void loop()
+{
+  // Read PIR Sensor
+  pirState = digitalRead(PIR_PIN);
+
+  // Read MQ135 (Potentiometer)
+  mqValue = analogRead(MQ135_PIN);
+
+  // Read Ultrasonic Sensor
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+
+  digitalWrite(TRIG_PIN, LOW);
+
+  duration = pulseIn(ECHO_PIN, HIGH);
+
+  distance = duration * 0.034 / 2;
+
+  // Convert values to scores
+
+  int AQ = map(mqValue, 0, 1023, 100, 0);
+
+  int UA;
+  if (pirState == HIGH)
+    UA = 50;
+  else
+    UA = 100;
+
+  int DB;
+
+  if (distance > 20)
+    DB = 100;
+  else if (distance > 10)
+    DB = 60;
+  else
+    DB = 20;
+
+  // Cleanliness Index
+
+  float CI = (0.5 * AQ) + (0.2 * UA) + (0.3 * DB);
+
+  Serial.println("---------------");
+  Serial.print("Air Quality Score: ");
+  Serial.println(AQ);
+
+  Serial.print("User Activity Score: ");
+  Serial.println(UA);
+
+  Serial.print("Dustbin Score: ");
+  Serial.println(DB);
+
+  Serial.print("Cleanliness Index: ");
+  Serial.println(CI);
+
+  // Alert Logic
+
+  if (CI < 60)
+  {
+    digitalWrite(LED_PIN, HIGH);
+
+    Serial.println("ALERT: CLEANING REQUIRED");
+  }
+  else
+  {
+    digitalWrite(LED_PIN, LOW);
+
+    Serial.println("STATUS: CLEAN");
+  }
+
+  delay(2000);
+}
